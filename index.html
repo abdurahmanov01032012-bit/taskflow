@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — планировщик задач</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 40px 16px;
+      background: #10131d;
+      color: #f4f4fb;
+      font-family: system-ui, sans-serif;
+    }
+
+    main {
+      max-width: 620px;
+      margin: auto;
+    }
+
+    h1 { margin-bottom: 6px; }
+    .subtitle { color: #a6abc0; margin-top: 0; }
+
+    .panel {
+      margin-top: 24px;
+      padding: 24px;
+      background: #1b2030;
+      border: 1px solid #30364a;
+      border-radius: 16px;
+    }
+
+    form {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0;
+    }
+
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #454b61;
+      border-radius: 8px;
+      background: #10131d;
+      color: white;
+      font: inherit;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: #7867ff;
+      color: white;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { background: #9285ff; }
+
+    ul { list-style: none; padding: 0; }
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid #30364a;
+    }
+
+    li span {
+      flex: 1;
+      overflow-wrap: anywhere;
+    }
+
+    li.done span {
+      color: #8d94aa;
+      text-decoration: line-through;
+    }
+
+    .delete {
+      background: #34394b;
+      padding: 7px 10px;
+    }
+
+    #progress { color: #b7afff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>✦ TaskFlow</h1>
+    <p class="subtitle">Твои задачи. Твой ритм.</p>
+
+    <section class="panel">
+      <h2>Мои задачи</h2>
+      <p id="progress">Выполнено: 0 из 0</p>
+
+      <form id="task-form">
+        <input id="task-input"
+          placeholder="Что нужно сделать?"
+          maxlength="120"
+          required>
+        <button type="submit">Добавить</button>
+      </form>
+
+      <ul id="task-list"></ul>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#task-form");
+    const input = document.querySelector("#task-input");
+    const list = document.querySelector("#task-list");
+    const progress = document.querySelector("#progress");
+
+    let tasks = JSON.parse(
+      localStorage.getItem("taskflow-tasks") || "[]"
+    );
+
+    function saveTasks() {
+      localStorage.setItem(
+        "taskflow-tasks",
+        JSON.stringify(tasks)
+      );
+    }
+
+    function renderTasks() {
+      list.replaceChildren();
+
+      tasks.forEach((task) => {
+        const item = document.createElement("li");
+        if (task.done) item.classList.add("done");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+        checkbox.setAttribute(
+          "aria-label", "Отметить выполнение"
+        );
+
+        checkbox.addEventListener("change", () => {
+          task.done = checkbox.checked;
+          saveTasks();
+          renderTasks();
+        });
+
+        const text = document.createElement("span");
+        text.textContent = task.text;
+
+        const remove = document.createElement("button");
+        remove.textContent = "Удалить";
+        remove.className = "delete";
+
+        remove.addEventListener("click", () => {
+          tasks = tasks.filter((t) => t.id !== task.id);
+          saveTasks();
+          renderTasks();
+        });
+
+        item.append(checkbox, text, remove);
+        list.append(item);
+      });
+
+      const completed = tasks.filter((task) => task.done).length;
+      progress.textContent =
+        `Выполнено: ${completed} из ${tasks.length}`;
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      tasks.push({
+        id: Date.now(),
+        text: text,
+        done: false
+      });
+
+      saveTasks();
+      renderTasks();
+      form.reset();
+      input.focus();
+    });
+
+    renderTasks();
+  </script>
+</body>
+</html>
